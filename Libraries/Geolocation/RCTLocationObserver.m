@@ -171,10 +171,9 @@ RCT_EXPORT_MODULE()
   NSString *message = [NSString stringWithFormat: @"Unable to fetch location within %.1fs.", request.options.timeout];
   request.errorBlock(@[RCTPositionError(RCTPositionErrorTimeout, message)]);
   [_pendingRequests removeObject:request];
-
-  // Stop updating if no pending requests
-  if (_pendingRequests.count == 0 && !_observingLocation) {
-    [_locationManager stopUpdatingLocation];
+  
+  if (!_observingLocation) {
+    [self stopObserving];
   }
 }
 
@@ -202,6 +201,7 @@ RCT_EXPORT_METHOD(stopObserving)
   // Stop updating if no pending requests
   if (_pendingRequests.count == 0) {
     [_locationManager stopUpdatingLocation];
+    _locationManager.desiredAccuracy = RCT_DEFAULT_LOCATION_ACCURACY;
   }
 }
 
@@ -301,13 +301,7 @@ RCT_EXPORT_METHOD(getCurrentPosition:(RCTLocationOptions)options
 
   // Stop updating if not observing
   if (!_observingLocation) {
-    [_locationManager stopUpdatingLocation];
-  }
-
-  // Reset location accuracy if desiredAccuracy is changed.
-  // Otherwise update accuracy will force triggering didUpdateLocations, watchPosition would keeping receiving location updates, even there's no location changes.
-  if (ABS(_locationManager.desiredAccuracy - RCT_DEFAULT_LOCATION_ACCURACY) > 0.000001) {
-    _locationManager.desiredAccuracy = RCT_DEFAULT_LOCATION_ACCURACY;
+    [self stopObserving];
   }
 }
 
@@ -339,12 +333,6 @@ RCT_EXPORT_METHOD(getCurrentPosition:(RCTLocationOptions)options
     [request.timeoutTimer invalidate];
   }
   [_pendingRequests removeAllObjects];
-
-  // Reset location accuracy if desiredAccuracy is changed.
-  // Otherwise update accuracy will force triggering didUpdateLocations, watchPosition would keeping receiving location updates, even there's no location changes.
-  if (ABS(_locationManager.desiredAccuracy - RCT_DEFAULT_LOCATION_ACCURACY) > 0.000001) {
-    _locationManager.desiredAccuracy = RCT_DEFAULT_LOCATION_ACCURACY;
-  }
 }
 
 static void checkLocationConfig()
